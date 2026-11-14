@@ -36,7 +36,7 @@
         .panel h2 { font-size: 1.1rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 10px; color: #c9d1d9; }
 
         .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-        input, select { flex: 1; min-width: 110px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #0d1117; color: #fff; font-size: 0.9rem; }
+        input, select { flex: 1; min-width: 90px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #0d1117; color: #fff; font-size: 0.9rem; }
         input:focus, select:focus { border-color: var(--accent); outline: none; }
         
         button { padding: 9px 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; transition: opacity 0.2s; }
@@ -56,9 +56,10 @@
         .item-card.auction { border-left-color: var(--warning); }
         .item-card.sold { border-left-color: var(--accent-blue); opacity: 0.75; }
 
-        .item-info h3 { font-size: 0.95rem; margin-bottom: 4px; color: #fff; }
+        .item-info h3 { font-size: 0.95rem; margin-bottom: 4px; color: #fff; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .item-info p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 4px; background: #30363d; color: #c9d1d9; }
+        .sku-badge { font-family: monospace; background: rgba(41, 121, 255, 0.15); color: #64b5f6; border: 1px solid rgba(41, 121, 255, 0.3); padding: 1px 6px; border-radius: 4px; font-size: 0.75rem; }
         
         .actions { display: flex; align-items: center; gap: 6px; }
         .timer-badge { font-family: monospace; color: var(--warning); font-weight: bold; font-size: 0.85rem; background: rgba(255, 179, 0, 0.1); padding: 2px 6px; border-radius: 4px; }
@@ -120,19 +121,20 @@
             <ul id="flipList" class="item-list"></ul>
         </div>
 
-        <!-- COLONNA 3: MAGAZZINO RICAMBI & UNITÀ -->
+        <!-- COLONNA 3: MAGAZZINO RICAMBI & UNITÀ CON CODICE ARTICOLO -->
         <div class="panel">
             <h2>📦 Magazzino & Prezzi Ricambi</h2>
             <div class="form-row">
-                <input type="text" id="invName" placeholder="Articolo / Ricambio (es. Display OLED iPhone 11)">
+                <input type="text" id="invCode" placeholder="Cod. Articolo (es. IP12-LCD)" style="max-width: 150px; text-transform: uppercase;">
+                <input type="text" id="invName" placeholder="Articolo / Ricambio">
             </div>
             <div class="form-row">
-                <input type="number" id="invQty" placeholder="Q.tà" value="1" style="max-width: 70px;">
+                <input type="number" id="invQty" placeholder="Q.tà" value="1" style="max-width: 75px;">
                 <input type="number" id="invPrice" placeholder="Costo Unitario €">
             </div>
             <button class="btn-add" style="background:var(--accent-blue); color:#fff;" onclick="addInv()">+ Aggiungi in Magazzino</button>
 
-            <input type="text" id="searchInv" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca ricambio in magazzino..." oninput="renderInv()">
+            <input type="text" id="searchInv" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca per codice articolo o nome..." oninput="renderInv()">
             <ul id="invList" class="item-list"></ul>
         </div>
 
@@ -228,15 +230,17 @@
             }
         }
 
-        // --- MAGAZZINO ---
+        // --- MAGAZZINO CON CODICE ARTICOLO ---
         function addInv() {
+            const code = document.getElementById('invCode').value.trim().toUpperCase();
             const name = document.getElementById('invName').value.trim();
             const qty = parseInt(document.getElementById('invQty').value) || 1;
             const price = parseFloat(document.getElementById('invPrice').value) || 0;
 
             if (!name) return alert("Inserisci il nome del ricambio o articolo!");
 
-            inventory.unshift({ id: Date.now(), name, qty, price });
+            inventory.unshift({ id: Date.now(), code, name, qty, price });
+            document.getElementById('invCode').value = '';
             document.getElementById('invName').value = '';
             document.getElementById('invQty').value = '1';
             document.getElementById('invPrice').value = '';
@@ -327,15 +331,19 @@
         function renderInv() {
             const q = document.getElementById('searchInv').value.toLowerCase();
             const list = document.getElementById('invList');
-            const filtered = inventory.filter(i => i.name.toLowerCase().includes(q));
+            const filtered = inventory.filter(i => 
+                i.name.toLowerCase().includes(q) || 
+                (i.code && i.code.toLowerCase().includes(q))
+            );
 
             list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Nessun ricambio in magazzino.</p>';
             filtered.forEach(i => {
                 let totalVal = i.qty * i.price;
+                let codeTag = i.code ? `<span class="sku-badge">#${i.code}</span>` : '';
                 list.innerHTML += `
                     <li class="item-card" style="border-left-color: var(--accent-blue);">
                         <div class="item-info">
-                            <h3>${i.name}</h3>
+                            <h3>${codeTag} ${i.name}</h3>
                             <p>Costo Unit.: €${i.price} | Valore Tot: <span class="price-tag">€${totalVal}</span></p>
                         </div>
                         <div class="actions">
