@@ -24,6 +24,12 @@
         header h1 { font-size: 1.6rem; color: var(--accent); display: flex; align-items: center; gap: 10px; }
         .header-actions { display: flex; gap: 10px; align-items: center; }
         
+        /* BARRA RIEPILOGO FINANZIARIO */
+        .dashboard-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 15px; display: flex; flex-direction: column; gap: 5px; }
+        .stat-card span { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
+        .stat-card strong { font-size: 1.3rem; color: var(--text); }
+
         .desktop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
         @media (max-width: 1200px) {
             .desktop-grid { grid-template-columns: 1fr 1fr; }
@@ -44,15 +50,20 @@
         .btn-add { background: var(--accent); color: #000; width: 100%; margin-top: 4px; }
         .btn-sm { padding: 5px 8px; font-size: 0.75rem; }
         .btn-del { background: var(--danger); color: #fff; }
+        .btn-edit { background: #30363d; color: #fff; border: 1px solid var(--border); }
         .btn-backup { background: #21262d; color: #c9d1d9; border: 1px solid var(--border); }
+
+        .filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .filter-btn { background: #21262d; color: var(--text-muted); border: 1px solid var(--border); padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; }
+        .filter-btn.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); font-weight: bold; }
 
         .search-box { width: 100%; margin-bottom: 12px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: #0d1117; color: #fff; font-size: 0.85rem; }
 
-        .item-list { list-style: none; display: flex; flex-direction: column; gap: 10px; max-height: 50vh; overflow-y: auto; padding-right: 4px; }
+        .item-list { list-style: none; display: flex; flex-direction: column; gap: 10px; max-height: 48vh; overflow-y: auto; padding-right: 4px; }
         .item-list::-webkit-scrollbar { width: 6px; }
         .item-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-        .item-card { background: #161b22; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-left: 4px solid var(--accent); border: 1px solid var(--border); border-left-width: 4px; }
+        .item-card { background: #161b22; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--border); border-left: 4px solid var(--accent); }
         .item-card.auction { border-left-color: var(--warning); }
         .item-card.sold { border-left-color: var(--accent-blue); opacity: 0.75; }
 
@@ -61,7 +72,7 @@
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 4px; background: #30363d; color: #c9d1d9; }
         .sku-badge { font-family: monospace; background: rgba(41, 121, 255, 0.15); color: #64b5f6; border: 1px solid rgba(41, 121, 255, 0.3); padding: 1px 6px; border-radius: 4px; font-size: 0.75rem; }
         
-        .actions { display: flex; align-items: center; gap: 6px; }
+        .actions { display: flex; align-items: center; gap: 5px; }
         .timer-badge { font-family: monospace; color: var(--warning); font-weight: bold; font-size: 0.85rem; background: rgba(255, 179, 0, 0.1); padding: 2px 6px; border-radius: 4px; }
         .price-tag { color: var(--accent); font-weight: bold; }
         .profit-tag { color: var(--accent); font-weight: bold; }
@@ -79,6 +90,22 @@
         </div>
     </header>
 
+    <!-- BARRA RIEPILOGO FINANZIARIO -->
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <span>Capitale Investito (Flipping)</span>
+            <strong id="statInvested" style="color:var(--warning);">€0</strong>
+        </div>
+        <div class="stat-card">
+            <span>Utile Netto Previsto</span>
+            <strong id="statProfit" style="color:var(--accent);">€0</strong>
+        </div>
+        <div class="stat-card">
+            <span>Valore Totale Magazzino Ricambi</span>
+            <strong id="statInventory" style="color:var(--accent-blue);">€0</strong>
+        </div>
+    </div>
+
     <div class="desktop-grid">
         
         <!-- COLONNA 1: ASTE EBAY CON TIMER -->
@@ -91,7 +118,7 @@
                 <input type="number" id="auctionMaxBid" placeholder="Tua Offerta Max €">
                 <input type="datetime-local" id="auctionEndTime">
             </div>
-            <button class="btn-add" style="background:var(--warning); color:#000;" onclick="addAuction()">+ Aggiungi Asta</button>
+            <button class="btn-add" style="background:var(--warning); color:#000;" onclick="saveAuction()">+ Aggiungi Asta</button>
             
             <input type="text" id="searchAuction" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca asta..." oninput="renderAuct()">
             <ul id="auctionList" class="item-list"></ul>
@@ -115,26 +142,33 @@
                     <option value="Venduto">✅ Venduto</option>
                 </select>
             </div>
-            <button class="btn-add" onclick="addFlip()">+ Registra Dispositivo</button>
+            <button class="btn-add" onclick="saveFlip()">+ Registra Dispositivo</button>
 
-            <input type="text" id="searchFlip" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca dispositivo..." oninput="renderFlip()">
+            <div class="filter-row" style="margin-top: 15px;">
+                <button class="filter-btn active" onclick="setFlipFilter('Tutti', this)">Tutti</button>
+                <button class="filter-btn" onclick="setFlipFilter('Da Sistemare', this)">🔧 Da Sistemare</button>
+                <button class="filter-btn" onclick="setFlipFilter('In Vendita', this)">🏷️ In Vendita</button>
+                <button class="filter-btn" onclick="setFlipFilter('Venduto', this)">✅ Venduti</button>
+            </div>
+
+            <input type="text" id="searchFlip" class="search-box" placeholder="🔍 Cerca dispositivo..." oninput="renderFlip()">
             <ul id="flipList" class="item-list"></ul>
         </div>
 
-        <!-- COLONNA 3: MAGAZZINO RICAMBI & UNITÀ CON CODICE ARTICOLO -->
+        <!-- COLONNA 3: MAGAZZINO RICAMBI & UNITÀ -->
         <div class="panel">
             <h2>📦 Magazzino & Prezzi Ricambi</h2>
             <div class="form-row">
-                <input type="text" id="invCode" placeholder="Cod. Articolo (es. IP12-LCD)" style="max-width: 150px; text-transform: uppercase;">
+                <input type="text" id="invCode" placeholder="Cod. (es. IP12-LCD)" style="max-width: 140px; text-transform: uppercase;">
                 <input type="text" id="invName" placeholder="Articolo / Ricambio">
             </div>
             <div class="form-row">
                 <input type="number" id="invQty" placeholder="Q.tà" value="1" style="max-width: 75px;">
                 <input type="number" id="invPrice" placeholder="Costo Unitario €">
             </div>
-            <button class="btn-add" style="background:var(--accent-blue); color:#fff;" onclick="addInv()">+ Aggiungi in Magazzino</button>
+            <button class="btn-add" style="background:var(--accent-blue); color:#fff;" onclick="saveInv()">+ Aggiungi in Magazzino</button>
 
-            <input type="text" id="searchInv" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca per codice articolo o nome..." oninput="renderInv()">
+            <input type="text" id="searchInv" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca per codice o nome..." oninput="renderInv()">
             <ul id="invList" class="item-list"></ul>
         </div>
 
@@ -144,12 +178,27 @@
         let auctions = JSON.parse(localStorage.getItem('mobilab_auctions')) || [];
         let flips = JSON.parse(localStorage.getItem('mobilab_flips')) || [];
         let inventory = JSON.parse(localStorage.getItem('mobilab_inventory')) || [];
+        
+        let editingAuctionId = null;
+        let editingFlipId = null;
+        let editingInvId = null;
+        let currentFlipFilter = 'Tutti';
 
         function saveData() {
             localStorage.setItem('mobilab_auctions', JSON.stringify(auctions));
             localStorage.setItem('mobilab_flips', JSON.stringify(flips));
             localStorage.setItem('mobilab_inventory', JSON.stringify(inventory));
             renderAll();
+        }
+
+        function updateStats() {
+            let totalInvested = flips.reduce((acc, f) => acc + (f.buyPrice + f.partsCost), 0);
+            let totalProfit = flips.filter(f => f.status !== 'Venduto').reduce((acc, f) => acc + (f.sellPrice > 0 ? f.sellPrice - (f.buyPrice + f.partsCost) : 0), 0);
+            let totalInvVal = inventory.reduce((acc, i) => acc + (i.qty * i.price), 0);
+
+            document.getElementById('statInvested').innerText = `€${totalInvested}`;
+            document.getElementById('statProfit').innerText = `€${totalProfit}`;
+            document.getElementById('statInventory').innerText = `€${totalInvVal}`;
         }
 
         // --- BACKUP & RIPRISTINO ---
@@ -184,18 +233,34 @@
         }
 
         // --- ASTE EBAY ---
-        function addAuction() {
+        function saveAuction() {
             const item = document.getElementById('auctionItem').value.trim();
             const maxBid = document.getElementById('auctionMaxBid').value;
             const endTime = document.getElementById('auctionEndTime').value;
 
             if (!item || !endTime) return alert("Inserisci almeno il nome dell'oggetto e la data di scadenza!");
 
-            auctions.unshift({ id: Date.now(), item, maxBid: maxBid || '0', endTime });
+            if (editingAuctionId) {
+                auctions = auctions.map(a => a.id === editingAuctionId ? { ...a, item, maxBid: maxBid || '0', endTime } : a);
+                editingAuctionId = null;
+            } else {
+                auctions.unshift({ id: Date.now(), item, maxBid: maxBid || '0', endTime });
+            }
+
             document.getElementById('auctionItem').value = '';
             document.getElementById('auctionMaxBid').value = '';
             document.getElementById('auctionEndTime').value = '';
             saveData();
+        }
+
+        function editAuction(id) {
+            const a = auctions.find(x => x.id === id);
+            if (!a) return;
+            document.getElementById('auctionItem').value = a.item;
+            document.getElementById('auctionMaxBid').value = a.maxBid;
+            document.getElementById('auctionEndTime').value = a.endTime;
+            editingAuctionId = id;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function deleteAuction(id) {
@@ -206,7 +271,7 @@
         }
 
         // --- FLIPPING ---
-        function addFlip() {
+        function saveFlip() {
             const device = document.getElementById('flipDevice').value.trim();
             const buyPrice = parseFloat(document.getElementById('flipBuyPrice').value) || 0;
             const partsCost = parseFloat(document.getElementById('flipPartsCost').value) || 0;
@@ -215,12 +280,30 @@
 
             if (!device) return alert("Inserisci il nome del dispositivo!");
 
-            flips.unshift({ id: Date.now(), device, buyPrice, partsCost, sellPrice, status });
+            if (editingFlipId) {
+                flips = flips.map(f => f.id === editingFlipId ? { ...f, device, buyPrice, partsCost, sellPrice, status } : f);
+                editingFlipId = null;
+            } else {
+                flips.unshift({ id: Date.now(), device, buyPrice, partsCost, sellPrice, status });
+            }
+
             document.getElementById('flipDevice').value = '';
             document.getElementById('flipBuyPrice').value = '';
             document.getElementById('flipPartsCost').value = '';
             document.getElementById('flipSellPrice').value = '';
             saveData();
+        }
+
+        function editFlip(id) {
+            const f = flips.find(x => x.id === id);
+            if (!f) return;
+            document.getElementById('flipDevice').value = f.device;
+            document.getElementById('flipBuyPrice').value = f.buyPrice;
+            document.getElementById('flipPartsCost').value = f.partsCost;
+            document.getElementById('flipSellPrice').value = f.sellPrice;
+            document.getElementById('flipStatus').value = f.status;
+            editingFlipId = id;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function deleteFlip(id) {
@@ -230,8 +313,15 @@
             }
         }
 
-        // --- MAGAZZINO CON CODICE ARTICOLO ---
-        function addInv() {
+        function setFlipFilter(status, btn) {
+            currentFlipFilter = status;
+            document.querySelectorAll('.filter-row .filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderFlip();
+        }
+
+        // --- MAGAZZINO ---
+        function saveInv() {
             const code = document.getElementById('invCode').value.trim().toUpperCase();
             const name = document.getElementById('invName').value.trim();
             const qty = parseInt(document.getElementById('invQty').value) || 1;
@@ -239,12 +329,29 @@
 
             if (!name) return alert("Inserisci il nome del ricambio o articolo!");
 
-            inventory.unshift({ id: Date.now(), code, name, qty, price });
+            if (editingInvId) {
+                inventory = inventory.map(i => i.id === editingInvId ? { ...i, code, name, qty, price } : i);
+                editingInvId = null;
+            } else {
+                inventory.unshift({ id: Date.now(), code, name, qty, price });
+            }
+
             document.getElementById('invCode').value = '';
             document.getElementById('invName').value = '';
             document.getElementById('invQty').value = '1';
             document.getElementById('invPrice').value = '';
             saveData();
+        }
+
+        function editInv(id) {
+            const i = inventory.find(x => x.id === id);
+            if (!i) return;
+            document.getElementById('invCode').value = i.code || '';
+            document.getElementById('invName').value = i.name;
+            document.getElementById('invQty').value = i.qty;
+            document.getElementById('invPrice').value = i.price;
+            editingInvId = id;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function updateInvQty(id, delta) {
@@ -293,6 +400,7 @@
                             <span class="timer-badge">⏳ ${timeLeft}</span>
                         </div>
                         <div class="actions">
+                            <button class="btn-sm btn-edit" onclick="editAuction(${a.id})">✏️</button>
                             <button class="btn-sm btn-del" onclick="deleteAuction(${a.id})">✕</button>
                         </div>
                     </li>
@@ -303,9 +411,13 @@
         function renderFlip() {
             const q = document.getElementById('searchFlip').value.toLowerCase();
             const list = document.getElementById('flipList');
-            const filtered = flips.filter(f => f.device.toLowerCase().includes(q));
+            const filtered = flips.filter(f => {
+                const matchText = f.device.toLowerCase().includes(q);
+                const matchStatus = currentFlipFilter === 'Tutti' || f.status === currentFlipFilter;
+                return matchText && matchStatus;
+            });
 
-            list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Nessun dispositivo registrato.</p>';
+            list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Nessun dispositivo trovato.</p>';
             filtered.forEach(f => {
                 let totalCost = f.buyPrice + f.partsCost;
                 let profit = f.sellPrice > 0 ? f.sellPrice - totalCost : 0;
@@ -316,11 +428,12 @@
                     <li class="item-card ${isSold}">
                         <div class="item-info">
                             <h3>${f.device}</h3>
-                            <p>Spesa (Acquisto+Ricambi): €${totalCost} | Vendita: <span class="price-tag">€${f.sellPrice}</span></p>
-                            <p>Utile Previsto: <span class="${profitClass}">€${profit}</span></p>
+                            <p>Spesa: €${totalCost} | Vendita: <span class="price-tag">€${f.sellPrice}</span></p>
+                            <p>Utile: <span class="${profitClass}">€${profit}</span></p>
                             <span class="badge">${f.status}</span>
                         </div>
                         <div class="actions">
+                            <button class="btn-sm btn-edit" onclick="editFlip(${f.id})">✏️</button>
                             <button class="btn-sm btn-del" onclick="deleteFlip(${f.id})">✕</button>
                         </div>
                     </li>
@@ -344,12 +457,13 @@
                     <li class="item-card" style="border-left-color: var(--accent-blue);">
                         <div class="item-info">
                             <h3>${codeTag} ${i.name}</h3>
-                            <p>Costo Unit.: €${i.price} | Valore Tot: <span class="price-tag">€${totalVal}</span></p>
+                            <p>Costo Unit.: €${i.price} | Tot: <span class="price-tag">€${totalVal}</span></p>
                         </div>
                         <div class="actions">
-                            <button class="btn-sm" style="background:#30363d;color:#fff;" onclick="updateInvQty(${i.id}, -1)">-</button>
-                            <span style="font-weight:bold; min-width:24px; text-align:center;">${i.qty}</span>
-                            <button class="btn-sm" style="background:#30363d;color:#fff;" onclick="updateInvQty(${i.id}, 1)">+</button>
+                            <button class="btn-sm" style="background:#21262d;color:#fff;" onclick="updateInvQty(${i.id}, -1)">-</button>
+                            <span style="font-weight:bold; min-width:20px; text-align:center; font-size:0.85rem;">${i.qty}</span>
+                            <button class="btn-sm" style="background:#21262d;color:#fff;" onclick="updateInvQty(${i.id}, 1)">+</button>
+                            <button class="btn-sm btn-edit" onclick="editInv(${i.id})">✏️</button>
                             <button class="btn-sm btn-del" onclick="deleteInv(${i.id})">✕</button>
                         </div>
                     </li>
@@ -361,6 +475,7 @@
             renderAuct();
             renderFlip();
             renderInv();
+            updateStats();
         }
 
         renderAll();
