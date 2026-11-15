@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MobiLab Gestionale - Desktop Edition</title>
+    <title>MobiLab Gestionale - Cloud Edition</title>
     <link rel="manifest" href="manifest.json">
+    <!-- Inclusione della libreria ufficiale di Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg: #0f1115;
@@ -19,10 +21,14 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
         body { background: var(--bg); color: var(--text); padding: 20px; }
+        .hidden { display: none !important; }
         
         header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         header h1 { font-size: 1.6rem; color: var(--accent); display: flex; align-items: center; gap: 10px; }
-        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        
+        /* SCHERMATA DI LOGIN */
+        #login-container { max-width: 400px; margin: 80px auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
         
         /* BARRA RIEPILOGO FINANZIARIO */
         .dashboard-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
@@ -52,6 +58,7 @@
         .btn-del { background: var(--danger); color: #fff; }
         .btn-edit { background: #30363d; color: #fff; border: 1px solid var(--border); }
         .btn-backup { background: #21262d; color: #c9d1d9; border: 1px solid var(--border); }
+        .btn-logout { background: var(--danger); color: #fff; }
 
         .filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
         .filter-btn { background: #21262d; color: var(--text-muted); border: 1px solid var(--border); padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; }
@@ -81,113 +88,231 @@
 </head>
 <body>
 
-    <header>
-        <h1>💻 MobiLab Gestionale <span style="font-size:0.8rem; color:var(--text); background:#21262d; border:1px solid var(--border);">PC Dashboard</span></h1>
-        <div class="header-actions">
-            <button class="btn-backup" onclick="exportData()">💾 Esporta Backup</button>
-            <button class="btn-backup" onclick="document.getElementById('importFile').click()">📂 Importa</button>
-            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+    <!-- SCHERMATA DI LOGIN CLOUD -->
+    <div id="login-container">
+        <h2 style="color: var(--accent); margin-bottom: 10px; font-size: 1.3rem;">🔐 MobiLab Cloud Login</h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Inserisci le credenziali del tuo account Supabase per accedere al gestionale.</p>
+        <div style="margin-bottom: 12px;">
+            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">EMAIL</label>
+            <input type="email" id="loginEmail" placeholder="tua@email.com" style="width: 100%;">
         </div>
-    </header>
-
-    <!-- BARRA RIEPILOGO FINANZIARIO -->
-    <div class="dashboard-stats">
-        <div class="stat-card">
-            <span>Capitale Investito (Flipping)</span>
-            <strong id="statInvested" style="color:var(--warning);">€0</strong>
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">PASSWORD</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" style="width: 100%;">
         </div>
-        <div class="stat-card">
-            <span>Utile Netto Previsto</span>
-            <strong id="statProfit" style="color:var(--accent);">€0</strong>
-        </div>
-        <div class="stat-card">
-            <span>Valore Totale Magazzino Ricambi</span>
-            <strong id="statInventory" style="color:var(--accent-blue);">€0</strong>
-        </div>
+        <button class="btn-add" onclick="handleLogin()" style="background: var(--accent); color: #000; padding: 11px;">Accedi</button>
+        <p id="loginError" style="color: var(--danger); font-size: 0.8rem; margin-top: 12px; text-align: center;"></p>
     </div>
 
-    <div class="desktop-grid">
-        
-        <!-- COLONNA 1: ASTE EBAY CON TIMER -->
-        <div class="panel">
-            <h2>⏳ Monitor Aste eBay</h2>
-            <div class="form-row">
-                <input type="text" id="auctionItem" placeholder="Oggetto / Modello (es. iPhone 12 lotto)">
+    <!-- APPLICAZIONE PRINCIPALE (VISIBILE DOPO IL LOGIN) -->
+    <div id="app-container" class="hidden">
+        <header>
+            <h1>💻 MobiLab Gestionale <span style="font-size:0.8rem; color:var(--text); background:#21262d; border:1px solid var(--border);">Cloud Sync</span></h1>
+            <div class="header-actions">
+                <button class="btn-backup" onclick="exportData()">💾 Esporta Backup</button>
+                <button class="btn-backup" onclick="document.getElementById('importFile').click()">📂 Importa</button>
+                <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+                <button class="btn-logout" onclick="handleLogout()">🚪 Esci</button>
             </div>
-            <div class="form-row">
-                <input type="number" id="auctionMaxBid" placeholder="Tua Offerta Max €">
-                <input type="datetime-local" id="auctionEndTime">
+        </header>
+
+        <!-- BARRA RIEPILOGO FINANZIARIO -->
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <span>Capitale Investito (Flipping)</span>
+                <strong id="statInvested" style="color:var(--warning);">€0</strong>
             </div>
-            <button class="btn-add" style="background:var(--warning); color:#000;" onclick="saveAuction()">+ Aggiungi Asta</button>
+            <div class="stat-card">
+                <span>Utile Netto Previsto</span>
+                <strong id="statProfit" style="color:var(--accent);">€0</strong>
+            </div>
+            <div class="stat-card">
+                <span>Valore Totale Magazzino Ricambi</span>
+                <strong id="statInventory" style="color:var(--accent-blue);">€0</strong>
+            </div>
+        </div>
+
+        <div class="desktop-grid">
             
-            <input type="text" id="searchAuction" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca asta..." oninput="renderAuct()">
-            <ul id="auctionList" class="item-list"></ul>
+            <!-- COLONNA 1: ASTE EBAY CON TIMER -->
+            <div class="panel">
+                <h2>⏳ Monitor Aste eBay</h2>
+                <div class="form-row">
+                    <input type="text" id="auctionItem" placeholder="Oggetto / Modello (es. iPhone 12 lotto)">
+                </div>
+                <div class="form-row">
+                    <input type="number" id="auctionMaxBid" placeholder="Tua Offerta Max €">
+                    <input type="datetime-local" id="auctionEndTime">
+                </div>
+                <button class="btn-add" style="background:var(--warning); color:#000;" onclick="saveAuction()">+ Aggiungi Asta</button>
+                
+                <input type="text" id="searchAuction" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca asta..." oninput="renderAuct()">
+                <ul id="auctionList" class="item-list"></ul>
+            </div>
+
+            <!-- COLONNA 2: FLIPPING (ACQUISTI & VENDITE DISPOSITIVI) -->
+            <div class="panel">
+                <h2>📱 Flipping (Compro & Rendo)</h2>
+                <div class="form-row">
+                    <input type="text" id="flipDevice" placeholder="Dispositivo (es. iPhone 13 128GB)">
+                </div>
+                <div class="form-row">
+                    <input type="number" id="flipBuyPrice" placeholder="Costo Acquisto €">
+                    <input type="number" id="flipPartsCost" placeholder="Costo Ricambi €">
+                </div>
+                <div class="form-row">
+                    <input type="number" id="flipSellPrice" placeholder="Prezzo Vendita Previsto €">
+                    <select id="flipStatus">
+                        <option value="Da Sistemare">🔧 Da Sistemare</option>
+                        <option value="In Vendita">🏷️ In Vendita</option>
+                        <option value="Venduto">✅ Venduto</option>
+                    </select>
+                </div>
+                <button class="btn-add" onclick="saveFlip()">+ Registra Dispositivo</button>
+
+                <div class="filter-row" style="margin-top: 15px;">
+                    <button class="filter-btn active" onclick="setFlipFilter('Tutti', this)">Tutti</button>
+                    <button class="filter-btn" onclick="setFlipFilter('Da Sistemare', this)">🔧 Da Sistemare</button>
+                    <button class="filter-btn" onclick="setFlipFilter('In Vendita', this)">🏷️ In Vendita</button>
+                    <button class="filter-btn" onclick="setFlipFilter('Venduto', this)">✅ Venduti</button>
+                </div>
+
+                <input type="text" id="searchFlip" class="search-box" placeholder="🔍 Cerca dispositivo..." oninput="renderFlip()">
+                <ul id="flipList" class="item-list"></ul>
+            </div>
+
+            <!-- COLONNA 3: MAGAZZINO RICAMBI & UNITÀ -->
+            <div class="panel">
+                <h2>📦 Magazzino & Prezzi Ricambi</h2>
+                <div class="form-row">
+                    <input type="text" id="invCode" placeholder="Cod. (es. IP12-LCD)" style="max-width: 140px; text-transform: uppercase;">
+                    <input type="text" id="invName" placeholder="Articolo / Ricambio">
+                </div>
+                <div class="form-row">
+                    <input type="number" id="invQty" placeholder="Q.tà" value="1" style="max-width: 75px;">
+                    <input type="number" id="invPrice" placeholder="Costo Unitario €">
+                </div>
+                <button class="btn-add" style="background:var(--accent-blue); color:#fff;" onclick="saveInv()">+ Aggiungi in Magazzino</button>
+
+                <input type="text" id="searchInv" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca per codice o nome..." oninput="renderInv()">
+                <ul id="invList" class="item-list"></ul>
+            </div>
+
         </div>
-
-        <!-- COLONNA 2: FLIPPING (ACQUISTI & VENDITE DISPOSITIVI) -->
-        <div class="panel">
-            <h2>📱 Flipping (Compro & Rendo)</h2>
-            <div class="form-row">
-                <input type="text" id="flipDevice" placeholder="Dispositivo (es. iPhone 13 128GB)">
-            </div>
-            <div class="form-row">
-                <input type="number" id="flipBuyPrice" placeholder="Costo Acquisto €">
-                <input type="number" id="flipPartsCost" placeholder="Costo Ricambi €">
-            </div>
-            <div class="form-row">
-                <input type="number" id="flipSellPrice" placeholder="Prezzo Vendita Previsto €">
-                <select id="flipStatus">
-                    <option value="Da Sistemare">🔧 Da Sistemare</option>
-                    <option value="In Vendita">🏷️ In Vendita</option>
-                    <option value="Venduto">✅ Venduto</option>
-                </select>
-            </div>
-            <button class="btn-add" onclick="saveFlip()">+ Registra Dispositivo</button>
-
-            <div class="filter-row" style="margin-top: 15px;">
-                <button class="filter-btn active" onclick="setFlipFilter('Tutti', this)">Tutti</button>
-                <button class="filter-btn" onclick="setFlipFilter('Da Sistemare', this)">🔧 Da Sistemare</button>
-                <button class="filter-btn" onclick="setFlipFilter('In Vendita', this)">🏷️ In Vendita</button>
-                <button class="filter-btn" onclick="setFlipFilter('Venduto', this)">✅ Venduti</button>
-            </div>
-
-            <input type="text" id="searchFlip" class="search-box" placeholder="🔍 Cerca dispositivo..." oninput="renderFlip()">
-            <ul id="flipList" class="item-list"></ul>
-        </div>
-
-        <!-- COLONNA 3: MAGAZZINO RICAMBI & UNITÀ -->
-        <div class="panel">
-            <h2>📦 Magazzino & Prezzi Ricambi</h2>
-            <div class="form-row">
-                <input type="text" id="invCode" placeholder="Cod. (es. IP12-LCD)" style="max-width: 140px; text-transform: uppercase;">
-                <input type="text" id="invName" placeholder="Articolo / Ricambio">
-            </div>
-            <div class="form-row">
-                <input type="number" id="invQty" placeholder="Q.tà" value="1" style="max-width: 75px;">
-                <input type="number" id="invPrice" placeholder="Costo Unitario €">
-            </div>
-            <button class="btn-add" style="background:var(--accent-blue); color:#fff;" onclick="saveInv()">+ Aggiungi in Magazzino</button>
-
-            <input type="text" id="searchInv" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca per codice o nome..." oninput="renderInv()">
-            <ul id="invList" class="item-list"></ul>
-        </div>
-
     </div>
 
     <script>
-        let auctions = JSON.parse(localStorage.getItem('mobilab_auctions')) || [];
-        let flips = JSON.parse(localStorage.getItem('mobilab_flips')) || [];
-        let inventory = JSON.parse(localStorage.getItem('mobilab_inventory')) || [];
+        // Configurazione Supabase
+        const SUPABASE_URL = 'https://mdircdhjezycjaxivaua.supabase.co';
+        const SUPABASE_ANON_KEY = 'Sb_publishable_cLHErZ8-H5AvqeDUhAW5sQ_x6p5Vk1P';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+        let auctions = [];
+        let flips = [];
+        let inventory = [];
         
         let editingAuctionId = null;
         let editingFlipId = null;
         let editingInvId = null;
         let currentFlipFilter = 'Tutti';
 
-        function saveData() {
-            localStorage.setItem('mobilab_auctions', JSON.stringify(auctions));
-            localStorage.setItem('mobilab_flips', JSON.stringify(flips));
-            localStorage.setItem('mobilab_inventory', JSON.stringify(inventory));
+        // --- GESTIONE SESSIONE & CLOUD ---
+        async function checkUser() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                showApp();
+            } else {
+                showLogin();
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+            errorEl.textContent = '';
+
+            if (!email || !password) {
+                errorEl.textContent = "Inserisci email e password.";
+                return;
+            }
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                errorEl.textContent = "Errore: " + error.message;
+            } else {
+                currentUser = data.user;
+                showApp();
+            }
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            currentUser = null;
+            showLogin();
+        }
+
+        function showLogin() {
+            document.getElementById('login-container').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('hidden');
+        }
+
+        async function showApp() {
+            document.getElementById('login-container').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            await loadDataFromCloud();
+        }
+
+        async function loadDataFromCloud() {
+            if (!currentUser) return;
+            const { data, error } = await supabaseClient
+                .from('mobilab_data')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Errore nel caricamento dati:', error);
+            }
+
+            if (data && data.data) {
+                auctions = data.data.auctions || [];
+                flips = data.data.flips || [];
+                inventory = data.data.inventory || [];
+            } else {
+                auctions = [];
+                flips = [];
+                inventory = [];
+            }
+            renderAll();
+        }
+
+        async function saveData() {
+            if (!currentUser) return;
+            const payload = {
+                user_id: currentUser.id,
+                data: { auctions, flips, inventory },
+                updated_at: new Date()
+            };
+
+            const { data: existing } = await supabaseClient
+                .from('mobilab_data')
+                .select('id')
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+
+            if (existing) {
+                await supabaseClient
+                    .from('mobilab_data')
+                    .update({ data: payload.data, updated_at: payload.updated_at })
+                    .eq('id', existing.id);
+            } else {
+                await supabaseClient
+                    .from('mobilab_data')
+                    .insert([payload]);
+            }
             renderAll();
         }
 
@@ -224,7 +349,7 @@
                     if (data.flips) flips = data.flips;
                     if (data.inventory) inventory = data.inventory;
                     saveData();
-                    alert("Backup importato con successo!");
+                    alert("Backup importato e sincronizzato con successo!");
                 } catch (err) {
                     alert("Errore durante l'importazione del file JSON.");
                 }
@@ -385,8 +510,10 @@
         }
 
         function renderAuct() {
-            const q = document.getElementById('searchAuction').value.toLowerCase();
+            const searchEl = document.getElementById('searchAuction');
+            const q = searchEl ? searchEl.value.toLowerCase() : '';
             const list = document.getElementById('auctionList');
+            if (!list) return;
             const filtered = auctions.filter(a => a.item.toLowerCase().includes(q));
 
             list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Nessuna asta monitorata.</p>';
@@ -409,8 +536,10 @@
         }
 
         function renderFlip() {
-            const q = document.getElementById('searchFlip').value.toLowerCase();
+            const searchEl = document.getElementById('searchFlip');
+            const q = searchEl ? searchEl.value.toLowerCase() : '';
             const list = document.getElementById('flipList');
+            if (!list) return;
             const filtered = flips.filter(f => {
                 const matchText = f.device.toLowerCase().includes(q);
                 const matchStatus = currentFlipFilter === 'Tutti' || f.status === currentFlipFilter;
@@ -442,8 +571,10 @@
         }
 
         function renderInv() {
-            const q = document.getElementById('searchInv').value.toLowerCase();
+            const searchEl = document.getElementById('searchInv');
+            const q = searchEl ? searchEl.value.toLowerCase() : '';
             const list = document.getElementById('invList');
+            if (!list) return;
             const filtered = inventory.filter(i => 
                 i.name.toLowerCase().includes(q) || 
                 (i.code && i.code.toLowerCase().includes(q))
@@ -478,7 +609,8 @@
             updateStats();
         }
 
-        renderAll();
+        // Avvio controllo sessione all'apertura della pagina
+        checkUser();
         setInterval(renderAuct, 1000);
     </script>
 </body>
