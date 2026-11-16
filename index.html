@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MobiLab Gestionale - Cloud Edition</title>
+    <title>MobiLab Gestionale - Pro Edition</title>
     <link rel="manifest" href="manifest.json">
-    <!-- Inclusione della libreria ufficiale di Supabase -->
+    <!-- Inclusione Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Libreria jsPDF per generazione ricevute PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
             --bg: #0f1115;
@@ -25,7 +27,7 @@
         
         header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         header h1 { font-size: 1.6rem; color: var(--accent); display: flex; align-items: center; gap: 10px; }
-        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         
         /* SCHERMATA DI LOGIN */
         #login-container { max-width: 400px; margin: 80px auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
@@ -36,29 +38,26 @@
         .stat-card span { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
         .stat-card strong { font-size: 1.3rem; color: var(--text); }
 
-        .desktop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        @media (max-width: 1200px) {
-            .desktop-grid { grid-template-columns: 1fr 1fr; }
-        }
-        @media (max-width: 768px) {
+        .desktop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 1024px) {
             .desktop-grid { grid-template-columns: 1fr; }
         }
 
         .panel { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); display: flex; flex-direction: column; height: fit-content; }
-        .panel h2 { font-size: 1.1rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 10px; color: #c9d1d9; }
+        .panel h2 { font-size: 1.1rem; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 10px; color: #c9d1d9; }
 
         .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-        input, select { flex: 1; min-width: 90px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #0d1117; color: #fff; font-size: 0.9rem; }
-        input:focus, select:focus { border-color: var(--accent); outline: none; }
+        input, select, textarea { flex: 1; min-width: 90px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #0d1117; color: #fff; font-size: 0.9rem; }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
         
         button { padding: 9px 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; transition: opacity 0.2s; }
         button:hover { opacity: 0.85; }
         .btn-add { background: var(--accent); color: #000; width: 100%; margin-top: 4px; }
         .btn-sm { padding: 5px 8px; font-size: 0.75rem; }
         .btn-del { background: var(--danger); color: #fff; }
-        .btn-edit { background: #30363d; color: #fff; border: 1px solid var(--border); }
         .btn-backup { background: #21262d; color: #c9d1d9; border: 1px solid var(--border); }
         .btn-logout { background: var(--danger); color: #fff; }
+        .btn-pro { background: var(--accent-blue); color: #fff; }
 
         .filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
         .filter-btn { background: #21262d; color: var(--text-muted); border: 1px solid var(--border); padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; }
@@ -66,7 +65,7 @@
 
         .search-box { width: 100%; margin-bottom: 12px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: #0d1117; color: #fff; font-size: 0.85rem; }
 
-        .item-list { list-style: none; display: flex; flex-direction: column; gap: 10px; max-height: 48vh; overflow-y: auto; padding-right: 4px; }
+        .item-list { list-style: none; display: flex; flex-direction: column; gap: 10px; max-height: 55vh; overflow-y: auto; padding-right: 4px; }
         .item-list::-webkit-scrollbar { width: 6px; }
         .item-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
@@ -79,11 +78,15 @@
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 4px; background: #30363d; color: #c9d1d9; }
         .sku-badge { font-family: monospace; background: rgba(41, 121, 255, 0.15); color: #64b5f6; border: 1px solid rgba(41, 121, 255, 0.3); padding: 1px 6px; border-radius: 4px; font-size: 0.75rem; }
         
-        .actions { display: flex; align-items: center; gap: 5px; }
+        .actions { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
         .timer-badge { font-family: monospace; color: var(--warning); font-weight: bold; font-size: 0.85rem; background: rgba(255, 179, 0, 0.1); padding: 2px 6px; border-radius: 4px; }
         .price-tag { color: var(--accent); font-weight: bold; }
         .profit-tag { color: var(--accent); font-weight: bold; }
         .loss-tag { color: var(--danger); font-weight: bold; }
+
+        /* MODALI A COMPARSA */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 92%; max-width: 680px; max-height: 85vh; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -91,7 +94,7 @@
     <!-- SCHERMATA DI LOGIN CLOUD -->
     <div id="login-container">
         <h2 style="color: var(--accent); margin-bottom: 10px; font-size: 1.3rem;">🔐 MobiLab Cloud Login</h2>
-        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Inserisci le credenziali del tuo account Supabase per accedere al gestionale.</p>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Accedi per sincronizzare il tuo gestionale ovunque.</p>
         <div style="margin-bottom: 12px;">
             <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">EMAIL</label>
             <input type="email" id="loginEmail" placeholder="tua@email.com" style="width: 100%;">
@@ -104,15 +107,20 @@
         <p id="loginError" style="color: var(--danger); font-size: 0.8rem; margin-top: 12px; text-align: center;"></p>
     </div>
 
-    <!-- APPLICAZIONE PRINCIPALE (VISIBILE DOPO IL LOGIN) -->
+    <!-- APPLICAZIONE PRINCIPALE (MINIMALE E PULITA) -->
     <div id="app-container" class="hidden">
         <header>
-            <h1>💻 MobiLab Gestionale <span style="font-size:0.8rem; color:var(--text); background:#21262d; border:1px solid var(--border);">Cloud Sync</span></h1>
+            <h1>💻 MobiLab Pro <span style="font-size:0.75rem; color:var(--accent); background:#21262d; border:1px solid var(--border); padding: 2px 8px; border-radius: 6px;">Cloud Sync</span></h1>
             <div class="header-actions">
-                <button class="btn-backup" onclick="exportData()">💾 Esporta Backup</button>
-                <button class="btn-backup" onclick="document.getElementById('importFile').click()">📂 Importa</button>
+                <button class="btn-pro" onclick="toggleModal('inventoryModal')">📦 Magazzino</button>
+                <button class="btn-pro" style="background:#00b0ff;" onclick="toggleModal('flipListModal')">📱 Lista Flipping</button>
+                <button class="btn-pro" style="background:#ffb300; color:#000;" onclick="toggleModal('auctionModal')">⏳ Aste & Scadenze</button>
+                <button class="btn-pro" style="background:#7c4dff;" onclick="toggleModal('statsModal')">📊 Statistiche</button>
+                <button class="btn-pro" style="background:#00e676; color:#000;" onclick="toggleModal('receiptModal')">🧾 Ricevuta PDF</button>
+                <button class="btn-backup" onclick="exportData()">💾</button>
+                <button class="btn-backup" onclick="document.getElementById('importFile').click()">📂</button>
                 <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
-                <button class="btn-logout" onclick="handleLogout()">🚪 Esci</button>
+                <button class="btn-logout" onclick="handleLogout()">🚪</button>
             </div>
         </header>
 
@@ -127,16 +135,17 @@
                 <strong id="statProfit" style="color:var(--accent);">€0</strong>
             </div>
             <div class="stat-card">
-                <span>Valore Totale Magazzino Ricambi</span>
+                <span>Valore Magazzino Ricambi</span>
                 <strong id="statInventory" style="color:var(--accent-blue);">€0</strong>
             </div>
         </div>
 
+        <!-- HOME RAPIDA: SOLO INSERIMENTO VELOCE -->
         <div class="desktop-grid">
             
-            <!-- COLONNA 1: ASTE EBAY CON TIMER -->
+            <!-- PANNELLO INSERIMENTO ASTA / SCADENZA RAPIDA -->
             <div class="panel">
-                <h2>⏳ Monitor Aste eBay</h2>
+                <h2>⏳ Inserisci Nuova Asta / Scadenza</h2>
                 <div class="form-row">
                     <input type="text" id="auctionItem" placeholder="Oggetto / Modello (es. iPhone 12 lotto)">
                 </div>
@@ -145,64 +154,113 @@
                     <input type="datetime-local" id="auctionEndTime">
                 </div>
                 <button class="btn-add" style="background:var(--warning); color:#000;" onclick="saveAuction()">+ Aggiungi Asta</button>
-                
-                <input type="text" id="searchAuction" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca asta..." oninput="renderAuct()">
-                <ul id="auctionList" class="item-list"></ul>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 15px; text-align: center;">💡 Clicca su <strong>"⏳ Aste & Scadenze"</strong> in alto per visualizzare l'elenco completo con i timer attivi.</p>
             </div>
 
-            <!-- COLONNA 2: FLIPPING (ACQUISTI & VENDITE DISPOSITIVI) -->
+            <!-- PANNELLO INSERIMENTO FLIPPING & CRM RAPIDO -->
             <div class="panel">
-                <h2>📱 Flipping (Compro & Rendo)</h2>
+                <h2>📱 Registra Dispositivo / Riparazione</h2>
                 <div class="form-row">
                     <input type="text" id="flipDevice" placeholder="Dispositivo (es. iPhone 13 128GB)">
+                    <input type="text" id="clientName" placeholder="Cliente / Contatto">
+                </div>
+                <div class="form-row">
+                    <input type="text" id="clientPhone" placeholder="Tel. Cliente" style="max-width: 130px;">
+                    <input type="text" id="deviceImei" placeholder="IMEI / Seriale">
                 </div>
                 <div class="form-row">
                     <input type="number" id="flipBuyPrice" placeholder="Costo Acquisto €">
                     <input type="number" id="flipPartsCost" placeholder="Costo Ricambi €">
                 </div>
                 <div class="form-row">
-                    <input type="number" id="flipSellPrice" placeholder="Prezzo Vendita Previsto €">
+                    <input type="number" id="flipSellPrice" placeholder="Prezzo Vendita €">
                     <select id="flipStatus">
                         <option value="Da Sistemare">🔧 Da Sistemare</option>
                         <option value="In Vendita">🏷️ In Vendita</option>
                         <option value="Venduto">✅ Venduto</option>
                     </select>
                 </div>
-                <button class="btn-add" onclick="saveFlip()">+ Registra Dispositivo</button>
-
-                <div class="filter-row" style="margin-top: 15px;">
-                    <button class="filter-btn active" onclick="setFlipFilter('Tutti', this)">Tutti</button>
-                    <button class="filter-btn" onclick="setFlipFilter('Da Sistemare', this)">🔧 Da Sistemare</button>
-                    <button class="filter-btn" onclick="setFlipFilter('In Vendita', this)">🏷️ In Vendita</button>
-                    <button class="filter-btn" onclick="setFlipFilter('Venduto', this)">✅ Venduti</button>
-                </div>
-
-                <input type="text" id="searchFlip" class="search-box" placeholder="🔍 Cerca dispositivo..." oninput="renderFlip()">
-                <ul id="flipList" class="item-list"></ul>
-            </div>
-
-            <!-- COLONNA 3: MAGAZZINO RICAMBI & UNITÀ -->
-            <div class="panel">
-                <h2>📦 Magazzino & Prezzi Ricambi</h2>
-                <div class="form-row">
-                    <input type="text" id="invCode" placeholder="Cod. (es. IP12-LCD)" style="max-width: 140px; text-transform: uppercase;">
-                    <input type="text" id="invName" placeholder="Articolo / Ricambio">
-                </div>
-                <div class="form-row">
-                    <input type="number" id="invQty" placeholder="Q.tà" value="1" style="max-width: 75px;">
-                    <input type="number" id="invPrice" placeholder="Costo Unitario €">
-                </div>
-                <button class="btn-add" style="background:var(--accent-blue); color:#fff;" onclick="saveInv()">+ Aggiungi in Magazzino</button>
-
-                <input type="text" id="searchInv" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca per codice o nome..." oninput="renderInv()">
-                <ul id="invList" class="item-list"></ul>
+                <button class="btn-add" onclick="saveFlip()">+ Registra nel Sistema</button>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 10px; text-align: center;">💡 Clicca su <strong>"📱 Lista Flipping"</strong> in alto per gestire e filtrare tutti i dispositivi salvati.</p>
             </div>
 
         </div>
     </div>
 
+    <!-- MODALE LISTA FLIPPING & CRM CLIENTE -->
+    <div id="flipListModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>📱 Gestione Dispositivi & Flipping <button class="btn-sm btn-del" onclick="toggleModal('flipListModal')">✕ Chiudi</button></h2>
+            <div class="filter-row">
+                <button class="filter-btn active" onclick="setFlipFilter('Tutti', this)">Tutti</button>
+                <button class="filter-btn" onclick="setFlipFilter('Da Sistemare', this)">🔧 Da Sistemare</button>
+                <button class="filter-btn" onclick="setFlipFilter('In Vendita', this)">🏷️ In Vendita</button>
+                <button class="filter-btn" onclick="setFlipFilter('Venduto', this)">✅ Venduti</button>
+            </div>
+            <input type="text" id="searchFlip" class="search-box" placeholder="🔍 Cerca dispositivo o cliente..." oninput="renderFlip()">
+            <ul id="flipList" class="item-list"></ul>
+        </div>
+    </div>
+
+    <!-- MODALE ASTE & TIMER -->
+    <div id="auctionModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>⏳ Monitor Aste eBay & Scadenze <button class="btn-sm btn-del" onclick="toggleModal('auctionModal')">✕ Chiudi</button></h2>
+            <input type="text" id="searchAuction" class="search-box" placeholder="🔍 Cerca asta..." oninput="renderAuct()">
+            <ul id="auctionList" class="item-list"></ul>
+        </div>
+    </div>
+
+    <!-- MODALE MAGAZZINO RICAMBI -->
+    <div id="inventoryModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>📦 Magazzino Ricambi & Prezzi <button class="btn-sm btn-del" onclick="toggleModal('inventoryModal')">✕ Chiudi</button></h2>
+            <div class="form-row">
+                <input type="text" id="invCode" placeholder="Cod. (es. IP12-LCD)" style="max-width: 140px; text-transform: uppercase;">
+                <input type="text" id="invName" placeholder="Articolo / Ricambio">
+            </div>
+            <div class="form-row">
+                <input type="number" id="invQty" placeholder="Q.tà" value="1" style="max-width: 75px;">
+                <input type="number" id="invPrice" placeholder="Costo Unitario €">
+            </div>
+            <button class="btn-add" style="background:var(--accent-blue); color:#fff;" onclick="saveInv()">+ Aggiungi in Magazzino</button>
+
+            <input type="text" id="searchInv" class="search-box" style="margin-top: 15px;" placeholder="🔍 Cerca ricambio..." oninput="renderInv()">
+            <ul id="invList" class="item-list"></ul>
+        </div>
+    </div>
+
+    <!-- MODALE STATISTICHE -->
+    <div id="statsModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>📊 Report & Statistiche Finanziarie <button class="btn-sm btn-del" onclick="toggleModal('statsModal')">✕ Chiudi</button></h2>
+            <div id="statsReportContent" style="display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem; color: var(--text-muted);"></div>
+        </div>
+    </div>
+
+    <!-- MODALE GENERATORE RICEVUTE PDF -->
+    <div id="receiptModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>🧾 Genera Ricevuta di Accettazione / Riparazione <button class="btn-sm btn-del" onclick="toggleModal('receiptModal')">✕ Chiudi</button></h2>
+            <div class="form-row">
+                <input type="text" id="rcptClient" placeholder="Nome e Cognome Cliente">
+                <input type="text" id="rcptPhone" placeholder="Telefono Cliente">
+            </div>
+            <div class="form-row">
+                <input type="text" id="rcptDevice" placeholder="Dispositivo (es. iPhone 11)">
+                <input type="text" id="rcptImei" placeholder="IMEI o Numero Seriale">
+            </div>
+            <div class="form-row">
+                <textarea id="rcptIssue" placeholder="Difetto riscontrato / Lavori da eseguire..." rows="2"></textarea>
+            </div>
+            <div class="form-row">
+                <input type="number" id="rcptPrice" placeholder="Preventivo / Costo Stimato €">
+            </div>
+            <button class="btn-add" style="background: var(--accent); color: #000;" onclick="generatePDFReceipt()">📥 Scarica Ricevuta PDF Ufficiale</button>
+        </div>
+    </div>
+
     <script>
-        // Configurazione Supabase
         const SUPABASE_URL = 'https://mdircdhjezycjaxivaua.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_cLHErZ8-H5AvqeDUhAW5sQ_x6p5Vk1P';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -211,13 +269,8 @@
         let auctions = [];
         let flips = [];
         let inventory = [];
-        
-        let editingAuctionId = null;
-        let editingFlipId = null;
-        let editingInvId = null;
         let currentFlipFilter = 'Tutti';
 
-        // --- GESTIONE SESSIONE & CLOUD ---
         async function checkUser() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
@@ -265,6 +318,14 @@
             await loadDataFromCloud();
         }
 
+        function toggleModal(modalId) {
+            document.getElementById(modalId).classList.toggle('hidden');
+            if(modalId === 'statsModal') updateStatsReport();
+            if(modalId === 'flipListModal') renderFlip();
+            if(modalId === 'auctionModal') renderAuct();
+            if(modalId === 'inventoryModal') renderInv();
+        }
+
         async function loadDataFromCloud() {
             if (!currentUser) return;
             const { data, error } = await supabaseClient
@@ -272,10 +333,6 @@
                 .select('*')
                 .eq('user_id', currentUser.id)
                 .maybeSingle();
-
-            if (error) {
-                console.error('Errore nel caricamento dati:', error);
-            }
 
             if (data && data.data) {
                 auctions = data.data.auctions || [];
@@ -304,14 +361,9 @@
                 .maybeSingle();
 
             if (existing) {
-                await supabaseClient
-                    .from('mobilab_data')
-                    .update({ data: payload.data, updated_at: payload.updated_at })
-                    .eq('id', existing.id);
+                await supabaseClient.from('mobilab_data').update({ data: payload.data, updated_at: payload.updated_at }).eq('id', existing.id);
             } else {
-                await supabaseClient
-                    .from('mobilab_data')
-                    .insert([payload]);
+                await supabaseClient.from('mobilab_data').insert([payload]);
             }
             renderAll();
         }
@@ -326,14 +378,30 @@
             document.getElementById('statInventory').innerText = `€${totalInvVal}`;
         }
 
-        // --- BACKUP & RIPRISTINO ---
+        function updateStatsReport() {
+            let totalInvested = flips.reduce((acc, f) => acc + (f.buyPrice + f.partsCost), 0);
+            let realizedProfit = flips.filter(f => f.status === 'Venduto').reduce((acc, f) => acc + (f.sellPrice - (f.buyPrice + f.partsCost)), 0);
+            let potentialProfit = flips.filter(f => f.status !== 'Venduto').reduce((acc, f) => acc + (f.sellPrice > 0 ? f.sellPrice - (f.buyPrice + f.partsCost) : 0), 0);
+            let totalInvVal = inventory.reduce((acc, i) => acc + (i.qty * i.price), 0);
+            let totalSold = flips.filter(f => f.status === 'Venduto').length;
+
+            document.getElementById('statsReportContent').innerHTML = `
+                <p><strong>Dispositivi Totali Gestiti:</strong> ${flips.length}</p>
+                <p><strong>Dispositivi Venduti:</strong> ${totalSold}</p>
+                <p><strong>Capitale Totale Investito:</strong> €${totalInvested}</p>
+                <p style="color:var(--accent);"><strong>Utile Reale (Venduti):</strong> €${realizedProfit}</p>
+                <p style="color:var(--warning);"><strong>Utile Previsto (In corso):</strong> €${potentialProfit}</p>
+                <p style="color:var(--accent-blue);"><strong>Valore Attuale Magazzino Ricambi:</strong> €${totalInvVal}</p>
+            `;
+        }
+
         function exportData() {
             const data = { auctions, flips, inventory };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `mobilab_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.download = `mobilab_pro_backup_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -349,93 +417,120 @@
                     if (data.flips) flips = data.flips;
                     if (data.inventory) inventory = data.inventory;
                     saveData();
-                    alert("Backup importato e sincronizzato con successo!");
+                    alert("Backup importato con successo!");
                 } catch (err) {
-                    alert("Errore durante l'importazione del file JSON.");
+                    alert("Errore file JSON.");
                 }
             };
             reader.readAsText(file);
         }
 
-        // --- ASTE EBAY ---
+        async function generatePDFReceipt() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const client = document.getElementById('rcptClient').value || 'Cliente Privato';
+            const phone = document.getElementById('rcptPhone').value || '-';
+            const device = document.getElementById('rcptDevice').value || 'Dispositivo';
+            const imei = document.getElementById('rcptImei').value || '-';
+            const issue = document.getElementById('rcptIssue').value || 'Controllo generale';
+            const price = document.getElementById('rcptPrice').value || '0';
+            const dateStr = new Date().toLocaleDateString('it-IT');
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(20);
+            doc.setTextColor(0, 230, 118);
+            doc.text("MobiLab - Laboratorio & Riparazioni", 14, 20);
+
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Data: ${dateStr}`, 150, 20);
+
+            doc.setLineWidth(0.5);
+            doc.setLineColor(200, 200, 200);
+            doc.line(14, 25, 196, 25);
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.setTextColor(40, 40, 40);
+            doc.text("DATI CLIENTE", 14, 35);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Nominativo: ${client}`, 14, 42);
+            doc.text(`Telefono: ${phone}`, 14, 48);
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.text("SCHEDA DISPOSITIVO", 14, 60);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Dispositivo: ${device}`, 14, 67);
+            doc.text(`IMEI / Serial: ${imei}`, 14, 73);
+            doc.text(`Difetto Segnalato: ${issue}`, 14, 79);
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.text(`Preventivo / Costo Stimato: Euro ${price}`, 14, 95);
+
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8);
+            doc.setTextColor(120, 120, 120);
+            doc.text("Il dispositivo viene consegnato per la riparazione alle condizioni concordate. MobiLab non e' responsabile per perdita di dati non salvati preventivamente.", 14, 120, { maxWidth: 180 });
+
+            doc.text("Firma Cliente ___________________________", 14, 150);
+            doc.text("Firma Tecnico MobiLab ___________________________", 120, 150);
+
+            doc.save(`Ricevuta_${client.replace(/\s+/g, '_')}_${dateStr}.pdf`);
+            toggleModal('receiptModal');
+        }
+
         function saveAuction() {
             const item = document.getElementById('auctionItem').value.trim();
             const maxBid = document.getElementById('auctionMaxBid').value;
             const endTime = document.getElementById('auctionEndTime').value;
-
-            if (!item || !endTime) return alert("Inserisci almeno il nome dell'oggetto e la data di scadenza!");
-
-            if (editingAuctionId) {
-                auctions = auctions.map(a => a.id === editingAuctionId ? { ...a, item, maxBid: maxBid || '0', endTime } : a);
-                editingAuctionId = null;
-            } else {
-                auctions.unshift({ id: Date.now(), item, maxBid: maxBid || '0', endTime });
-            }
-
+            if (!item || !endTime) return alert("Inserisci oggetto e scadenza!");
+            auctions.unshift({ id: Date.now(), item, maxBid: maxBid || '0', endTime });
             document.getElementById('auctionItem').value = '';
             document.getElementById('auctionMaxBid').value = '';
             document.getElementById('auctionEndTime').value = '';
             saveData();
-        }
-
-        function editAuction(id) {
-            const a = auctions.find(x => x.id === id);
-            if (!a) return;
-            document.getElementById('auctionItem').value = a.item;
-            document.getElementById('auctionMaxBid').value = a.maxBid;
-            document.getElementById('auctionEndTime').value = a.endTime;
-            editingAuctionId = id;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            alert("Asta salvata con successo!");
         }
 
         function deleteAuction(id) {
-            if (confirm("Eliminare questa asta dal monitor?")) {
-                auctions = auctions.filter(a => a.id !== id);
-                saveData();
-            }
+            auctions = auctions.filter(a => a.id !== id);
+            saveData();
         }
 
-        // --- FLIPPING ---
         function saveFlip() {
             const device = document.getElementById('flipDevice').value.trim();
+            const clientName = document.getElementById('clientName').value.trim();
+            const clientPhone = document.getElementById('clientPhone').value.trim();
+            const deviceImei = document.getElementById('deviceImei').value.trim();
             const buyPrice = parseFloat(document.getElementById('flipBuyPrice').value) || 0;
             const partsCost = parseFloat(document.getElementById('flipPartsCost').value) || 0;
             const sellPrice = parseFloat(document.getElementById('flipSellPrice').value) || 0;
             const status = document.getElementById('flipStatus').value;
 
             if (!device) return alert("Inserisci il nome del dispositivo!");
-
-            if (editingFlipId) {
-                flips = flips.map(f => f.id === editingFlipId ? { ...f, device, buyPrice, partsCost, sellPrice, status } : f);
-                editingFlipId = null;
-            } else {
-                flips.unshift({ id: Date.now(), device, buyPrice, partsCost, sellPrice, status });
-            }
-
+            flips.unshift({ id: Date.now(), device, clientName, clientPhone, deviceImei, buyPrice, partsCost, sellPrice, status });
+            
             document.getElementById('flipDevice').value = '';
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientPhone').value = '';
+            document.getElementById('deviceImei').value = '';
             document.getElementById('flipBuyPrice').value = '';
             document.getElementById('flipPartsCost').value = '';
             document.getElementById('flipSellPrice').value = '';
             saveData();
-        }
-
-        function editFlip(id) {
-            const f = flips.find(x => x.id === id);
-            if (!f) return;
-            document.getElementById('flipDevice').value = f.device;
-            document.getElementById('flipBuyPrice').value = f.buyPrice;
-            document.getElementById('flipPartsCost').value = f.partsCost;
-            document.getElementById('flipSellPrice').value = f.sellPrice;
-            document.getElementById('flipStatus').value = f.status;
-            editingFlipId = id;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            alert("Dispositivo registrato con successo!");
         }
 
         function deleteFlip(id) {
-            if (confirm("Rimuovere questo dispositivo?")) {
-                flips = flips.filter(f => f.id !== id);
-                saveData();
-            }
+            flips = flips.filter(f => f.id !== id);
+            saveData();
         }
 
         function setFlipFilter(status, btn) {
@@ -445,22 +540,13 @@
             renderFlip();
         }
 
-        // --- MAGAZZINO ---
         function saveInv() {
             const code = document.getElementById('invCode').value.trim().toUpperCase();
             const name = document.getElementById('invName').value.trim();
             const qty = parseInt(document.getElementById('invQty').value) || 1;
             const price = parseFloat(document.getElementById('invPrice').value) || 0;
-
-            if (!name) return alert("Inserisci il nome del ricambio o articolo!");
-
-            if (editingInvId) {
-                inventory = inventory.map(i => i.id === editingInvId ? { ...i, code, name, qty, price } : i);
-                editingInvId = null;
-            } else {
-                inventory.unshift({ id: Date.now(), code, name, qty, price });
-            }
-
+            if (!name) return alert("Inserisci il nome del ricambio!");
+            inventory.unshift({ id: Date.now(), code, name, qty, price });
             document.getElementById('invCode').value = '';
             document.getElementById('invName').value = '';
             document.getElementById('invQty').value = '1';
@@ -468,66 +554,44 @@
             saveData();
         }
 
-        function editInv(id) {
-            const i = inventory.find(x => x.id === id);
-            if (!i) return;
-            document.getElementById('invCode').value = i.code || '';
-            document.getElementById('invName').value = i.name;
-            document.getElementById('invQty').value = i.qty;
-            document.getElementById('invPrice').value = i.price;
-            editingInvId = id;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
         function updateInvQty(id, delta) {
-            inventory = inventory.map(i => {
-                if (i.id === id) i.qty = Math.max(0, i.qty + delta);
-                return i;
-            });
+            inventory = inventory.map(i => { if (i.id === id) i.qty = Math.max(0, i.qty + delta); return i; });
             saveData();
         }
 
         function deleteInv(id) {
-            if (confirm("Eliminare articolo dal magazzino?")) {
-                inventory = inventory.filter(i => i.id !== id);
-                saveData();
-            }
+            inventory = inventory.filter(i => i.id !== id);
+            saveData();
         }
 
-        // --- RENDER & TIMER ---
         function getTimeRemaining(endtime) {
             const total = Date.parse(endtime) - Date.now();
-            if (total <= 0) return "ASTA SCADUTA";
+            if (total <= 0) return "SCADUTO";
             const seconds = Math.floor((total / 1000) % 60);
             const minutes = Math.floor((total / 1000 / 60) % 60);
             const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
             const days = Math.floor(total / (1000 * 60 * 60 * 24));
-            
             let res = "";
             if (days > 0) res += days + "g ";
-            res += String(hours).padStart(2, '0') + "h " + String(minutes).padStart(2, '0') + "m " + String(seconds).padStart(2, '0') + "s";
-            return res;
+            return res + String(hours).padStart(2, '0') + "h " + String(minutes).padStart(2, '0') + "m " + String(seconds).padStart(2, '0') + "s";
         }
 
         function renderAuct() {
             const searchEl = document.getElementById('searchAuction');
             const q = searchEl ? searchEl.value.toLowerCase() : '';
             const list = document.getElementById('auctionList');
-            if (!list) return;
+            if(!list) return;
             const filtered = auctions.filter(a => a.item.toLowerCase().includes(q));
-
-            list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Nessuna asta monitorata.</p>';
+            list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Nessuna asta.</p>';
             filtered.forEach(a => {
-                let timeLeft = getTimeRemaining(a.endTime);
                 list.innerHTML += `
                     <li class="item-card auction">
                         <div class="item-info">
                             <h3>${a.item}</h3>
-                            <p>Max Offerta: <span class="price-tag">€${a.maxBid}</span></p>
-                            <span class="timer-badge">⏳ ${timeLeft}</span>
+                            <p>Max: <span class="price-tag">€${a.maxBid}</span></p>
+                            <span class="timer-badge">⏳ ${getTimeRemaining(a.endTime)}</span>
                         </div>
                         <div class="actions">
-                            <button class="btn-sm btn-edit" onclick="editAuction(${a.id})">✏️</button>
                             <button class="btn-sm btn-del" onclick="deleteAuction(${a.id})">✕</button>
                         </div>
                     </li>
@@ -539,30 +603,27 @@
             const searchEl = document.getElementById('searchFlip');
             const q = searchEl ? searchEl.value.toLowerCase() : '';
             const list = document.getElementById('flipList');
-            if (!list) return;
+            if(!list) return;
             const filtered = flips.filter(f => {
-                const matchText = f.device.toLowerCase().includes(q);
+                const matchText = f.device.toLowerCase().includes(q) || (f.clientName && f.clientName.toLowerCase().includes(q));
                 const matchStatus = currentFlipFilter === 'Tutti' || f.status === currentFlipFilter;
                 return matchText && matchStatus;
             });
 
-            list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Nessun dispositivo trovato.</p>';
+            list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Nessun dispositivo.</p>';
             filtered.forEach(f => {
                 let totalCost = f.buyPrice + f.partsCost;
                 let profit = f.sellPrice > 0 ? f.sellPrice - totalCost : 0;
-                let profitClass = profit >= 0 ? 'profit-tag' : 'loss-tag';
-                let isSold = f.status === 'Venduto' ? 'sold' : '';
-
+                let clientInfo = f.clientName ? `<p>👤 ${f.clientName} (${f.clientPhone || 'No tel'})</p>` : '';
                 list.innerHTML += `
-                    <li class="item-card ${isSold}">
+                    <li class="item-card ${f.status === 'Venduto' ? 'sold' : ''}">
                         <div class="item-info">
                             <h3>${f.device}</h3>
-                            <p>Spesa: €${totalCost} | Vendita: <span class="price-tag">€${f.sellPrice}</span></p>
-                            <p>Utile: <span class="${profitClass}">€${profit}</span></p>
+                            ${clientInfo}
+                            <p>Spesa: €${totalCost} | Vendita: <span class="price-tag">€${f.sellPrice}</span> | Utile: <span class="${profit >= 0 ? 'profit-tag' : 'loss-tag'}">€${profit}</span></p>
                             <span class="badge">${f.status}</span>
                         </div>
                         <div class="actions">
-                            <button class="btn-sm btn-edit" onclick="editFlip(${f.id})">✏️</button>
                             <button class="btn-sm btn-del" onclick="deleteFlip(${f.id})">✕</button>
                         </div>
                     </li>
@@ -574,27 +635,20 @@
             const searchEl = document.getElementById('searchInv');
             const q = searchEl ? searchEl.value.toLowerCase() : '';
             const list = document.getElementById('invList');
-            if (!list) return;
-            const filtered = inventory.filter(i => 
-                i.name.toLowerCase().includes(q) || 
-                (i.code && i.code.toLowerCase().includes(q))
-            );
-
-            list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Nessun ricambio in magazzino.</p>';
+            if(!list) return;
+            const filtered = inventory.filter(i => i.name.toLowerCase().includes(q) || (i.code && i.code.toLowerCase().includes(q)));
+            list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Magazzino vuoto.</p>';
             filtered.forEach(i => {
-                let totalVal = i.qty * i.price;
-                let codeTag = i.code ? `<span class="sku-badge">#${i.code}</span>` : '';
                 list.innerHTML += `
                     <li class="item-card" style="border-left-color: var(--accent-blue);">
                         <div class="item-info">
-                            <h3>${codeTag} ${i.name}</h3>
-                            <p>Costo Unit.: €${i.price} | Tot: <span class="price-tag">€${totalVal}</span></p>
+                            <h3>${i.code ? `<span class="sku-badge">#${i.code}</span>` : ''} ${i.name}</h3>
+                            <p>Costo Unit.: €${i.price} | Tot: <span class="price-tag">€${i.qty * i.price}</span></p>
                         </div>
                         <div class="actions">
                             <button class="btn-sm" style="background:#21262d;color:#fff;" onclick="updateInvQty(${i.id}, -1)">-</button>
                             <span style="font-weight:bold; min-width:20px; text-align:center; font-size:0.85rem;">${i.qty}</span>
                             <button class="btn-sm" style="background:#21262d;color:#fff;" onclick="updateInvQty(${i.id}, 1)">+</button>
-                            <button class="btn-sm btn-edit" onclick="editInv(${i.id})">✏️</button>
                             <button class="btn-sm btn-del" onclick="deleteInv(${i.id})">✕</button>
                         </div>
                     </li>
@@ -603,13 +657,9 @@
         }
 
         function renderAll() {
-            renderAuct();
-            renderFlip();
-            renderInv();
             updateStats();
         }
 
-        // Avvio controllo sessione all'apertura della pagina
         checkUser();
         setInterval(renderAuct, 1000);
     </script>
