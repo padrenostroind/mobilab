@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MobiLab Gestionale - Pro Edition</title>
+    <title>MobiLab Gestionale - Moby Edition</title>
     <link rel="manifest" href="manifest.json">
     <!-- Inclusione Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,116 +11,270 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
-            --bg: #0f1115;
-            --card: #181b22;
-            --accent: #00e676;
-            --accent-blue: #2979ff;
-            --text: #ffffff;
-            --text-muted: #8b949e;
-            --danger: #ff5252;
-            --warning: #ffb300;
-            --border: #30363d;
+            /* PALETTE ISPIRATA A MOBY: DEEP OCEAN, TECH CYAN & ECO EMERALD */
+            --bg: #081018;
+            --card: #0f1c29;
+            --card-inner: #0a141e;
+            --accent: #10b981;       /* Verde Smeraldo (Foglia/Circuiti Moby) */
+            --accent-cyan: #06b6d4;  /* Ciano Tech */
+            --accent-blue: #2563eb;  /* Blu Balena */
+            --text: #f0f7ff;
+            --text-muted: #84a0b8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border: #1e354d;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: var(--bg); color: var(--text); padding: 20px; }
+        body { 
+            background: radial-gradient(circle at top right, #0d2136 0%, var(--bg) 60%);
+            color: var(--text); 
+            padding: 20px; 
+            min-height: 100vh;
+        }
         .hidden { display: none !important; }
         
-        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        header h1 { font-size: 1.6rem; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding-bottom: 15px; 
+            border-bottom: 1px solid var(--border); 
+            margin-bottom: 20px; 
+            flex-wrap: wrap; 
+            gap: 12px; 
+        }
+        .brand-box {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .moby-avatar {
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
+            object-fit: cover;
+            background: #ffffff;
+            border: 2px solid var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.35);
+            padding: 2px;
+        }
+        header h1 { font-size: 1.55rem; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        header h1 span.highlight { color: var(--accent); }
+        .cloud-badge {
+            font-size: 0.72rem; 
+            color: var(--accent-cyan); 
+            background: rgba(6, 182, 212, 0.12); 
+            border: 1px solid rgba(6, 182, 212, 0.35); 
+            padding: 3px 9px; 
+            border-radius: 20px;
+            font-weight: 600;
+        }
         .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         
         /* SCHERMATA DI LOGIN */
-        #login-container { max-width: 400px; margin: 80px auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        #login-container { 
+            max-width: 400px; 
+            margin: 60px auto; 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+            padding: 28px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            text-align: center;
+        }
+        .login-moby {
+            width: 90px;
+            height: 90px;
+            border-radius: 20px;
+            background: #fff;
+            border: 2px solid var(--accent);
+            margin-bottom: 14px;
+            object-fit: cover;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
         
         /* BARRA RIEPILOGO FINANZIARIO */
-        .dashboard-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 15px; display: flex; flex-direction: column; gap: 5px; }
-        .stat-card span { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
-        .stat-card strong { font-size: 1.3rem; color: var(--text); }
+        .dashboard-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 22px; }
+        .stat-card { 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 16px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .stat-card span { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .stat-card strong { font-size: 1.4rem; color: var(--text); }
 
-        .desktop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 1024px) {
+        /* GRIGLIA A 3 QUADRANTI (ASTE, FLIPPING, CALCOLATRICE) */
+        .desktop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        @media (max-width: 1200px) {
+            .desktop-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 780px) {
             .desktop-grid { grid-template-columns: 1fr; }
         }
 
-        .panel { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); display: flex; flex-direction: column; height: fit-content; }
-        .panel h2 { font-size: 1.1rem; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 10px; color: #c9d1d9; }
+        .panel { 
+            background: var(--card); 
+            border-radius: 14px; 
+            padding: 18px; 
+            border: 1px solid var(--border); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+        }
+        .panel h2 { 
+            font-size: 1.05rem; 
+            margin-bottom: 14px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            border-bottom: 1px solid var(--border); 
+            padding-bottom: 10px; 
+            color: #e2e8f0; 
+        }
 
         .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-        input, select, textarea { flex: 1; min-width: 90px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #0d1117; color: #fff; font-size: 0.9rem; }
-        input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
+        input, select, textarea { 
+            flex: 1; 
+            min-width: 90px; 
+            padding: 10px 12px; 
+            border-radius: 8px; 
+            border: 1px solid var(--border); 
+            background: var(--card-inner); 
+            color: #fff; 
+            font-size: 0.9rem; 
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent-cyan); outline: none; }
         
-        button { padding: 9px 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; transition: opacity 0.2s; }
-        button:hover { opacity: 0.85; }
-        .btn-add { background: var(--accent); color: #000; width: 100%; margin-top: 4px; }
+        button { padding: 9px 14px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; transition: transform 0.1s, opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        button:active { transform: scale(0.98); }
+        .btn-add { background: var(--accent); color: #04130d; width: 100%; margin-top: 4px; }
         .btn-sm { padding: 5px 8px; font-size: 0.75rem; }
         .btn-del { background: var(--danger); color: #fff; }
-        .btn-backup { background: #21262d; color: #c9d1d9; border: 1px solid var(--border); }
+        .btn-backup { background: #16283a; color: #cbd5e1; border: 1px solid var(--border); }
         .btn-logout { background: var(--danger); color: #fff; }
         .btn-pro { background: var(--accent-blue); color: #fff; }
 
-        .filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-        .filter-btn { background: #21262d; color: var(--text-muted); border: 1px solid var(--border); padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; }
-        .filter-btn.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); font-weight: bold; }
+        /* STILE QUADRANTE CALCOLATRICE */
+        .calc-display {
+            width: 100%;
+            background: var(--card-inner);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            text-align: right;
+            margin-bottom: 12px;
+        }
+        .calc-history {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            min-height: 16px;
+            font-family: monospace;
+        }
+        .calc-current {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            flex: 1;
+        }
+        .calc-btn {
+            background: #152638;
+            color: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 0;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .calc-btn:hover { background: #1d354e; }
+        .calc-btn.op { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.35); }
+        .calc-btn.clear { background: rgba(239, 68, 68, 0.18); color: #fca5a5; border-color: rgba(239, 68, 68, 0.35); }
+        .calc-btn.eq { background: var(--accent); color: #04130d; grid-column: span 2; }
 
-        .search-box { width: 100%; margin-bottom: 12px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: #0d1117; color: #fff; font-size: 0.85rem; }
+        /* FILTRI E LISTE NEI MODALI */
+        .filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .filter-btn { background: #152638; color: var(--text-muted); border: 1px solid var(--border); padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; }
+        .filter-btn.active { background: var(--accent-cyan); color: #05131a; border-color: var(--accent-cyan); font-weight: bold; }
+
+        .search-box { width: 100%; margin-bottom: 12px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-inner); color: #fff; font-size: 0.85rem; }
 
         .item-list { list-style: none; display: flex; flex-direction: column; gap: 10px; max-height: 55vh; overflow-y: auto; padding-right: 4px; }
         .item-list::-webkit-scrollbar { width: 6px; }
         .item-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-        .item-card { background: #161b22; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--border); border-left: 4px solid var(--accent); }
+        .item-card { background: var(--card-inner); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--border); border-left: 4px solid var(--accent); }
         .item-card.auction { border-left-color: var(--warning); }
-        .item-card.sold { border-left-color: var(--accent-blue); opacity: 0.75; }
+        .item-card.sold { border-left-color: var(--accent-cyan); opacity: 0.75; }
 
         .item-info h3 { font-size: 0.95rem; margin-bottom: 4px; color: #fff; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .item-info p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
-        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 4px; background: #30363d; color: #c9d1d9; }
-        .sku-badge { font-family: monospace; background: rgba(41, 121, 255, 0.15); color: #64b5f6; border: 1px solid rgba(41, 121, 255, 0.3); padding: 1px 6px; border-radius: 4px; font-size: 0.75rem; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 4px; background: #1e354d; color: #cbd5e1; }
+        .sku-badge { font-family: monospace; background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.35); padding: 1px 6px; border-radius: 4px; font-size: 0.75rem; }
         
         .actions { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-        .timer-badge { font-family: monospace; color: var(--warning); font-weight: bold; font-size: 0.85rem; background: rgba(255, 179, 0, 0.1); padding: 2px 6px; border-radius: 4px; }
+        .timer-badge { font-family: monospace; color: var(--warning); font-weight: bold; font-size: 0.85rem; background: rgba(245, 158, 11, 0.12); padding: 2px 6px; border-radius: 4px; }
         .price-tag { color: var(--accent); font-weight: bold; }
         .profit-tag { color: var(--accent); font-weight: bold; }
         .loss-tag { color: var(--danger); font-weight: bold; }
 
         /* MODALI A COMPARSA */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 92%; max-width: 680px; max-height: 85vh; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(4, 9, 15, 0.82); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 14px; width: 92%; max-width: 680px; max-height: 85vh; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
     </style>
 </head>
 <body>
 
-    <!-- SCHERMATA DI LOGIN CLOUD -->
+    <!-- SCHERMATA DI LOGIN CLOUD CON MOBY -->
     <div id="login-container">
-        <h2 style="color: var(--accent); margin-bottom: 10px; font-size: 1.3rem;">🔐 MobiLab Cloud Login</h2>
-        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Accedi per sincronizzare il tuo gestionale ovunque.</p>
-        <div style="margin-bottom: 12px;">
+        <img src="moby.png" onerror="this.onerror=null; this.src='moby.jpg';" alt="Moby Mascotte" class="login-moby">
+        <h2 style="color: var(--accent); margin-bottom: 8px; font-size: 1.35rem;">MobiLab Cloud Login</h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Moby è pronto in laboratorio. Accedi per sincronizzare i dati.</p>
+        <div style="margin-bottom: 12px; text-align: left;">
             <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">EMAIL</label>
             <input type="email" id="loginEmail" placeholder="tua@email.com" style="width: 100%;">
         </div>
-        <div style="margin-bottom: 20px;">
+        <div style="margin-bottom: 20px; text-align: left;">
             <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">PASSWORD</label>
             <input type="password" id="loginPassword" placeholder="••••••••" style="width: 100%;">
         </div>
-        <button class="btn-add" onclick="handleLogin()" style="background: var(--accent); color: #000; padding: 11px;">Accedi</button>
-        <p id="loginError" style="color: var(--danger); font-size: 0.8rem; margin-top: 12px; text-align: center;"></p>
+        <button class="btn-add" onclick="handleLogin()" style="padding: 12px;">Accedi al Laboratorio</button>
+        <p id="loginError" style="color: var(--danger); font-size: 0.8rem; margin-top: 12px;"></p>
     </div>
 
-    <!-- APPLICAZIONE PRINCIPALE (MINIMALE E PULITA) -->
+    <!-- APPLICAZIONE PRINCIPALE (MINIMALE & TEMA MOBY) -->
     <div id="app-container" class="hidden">
         <header>
-            <h1>💻 MobiLab Pro <span style="font-size:0.75rem; color:var(--accent); background:#21262d; border:1px solid var(--border); padding: 2px 8px; border-radius: 6px;">Cloud Sync</span></h1>
+            <div class="brand-box">
+                <img src="moby.png" onerror="this.onerror=null; this.src='moby.jpg';" alt="Moby" class="moby-avatar" title="Moby - Assistente MobiLab">
+                <div>
+                    <h1>Mobi<span class="highlight">Lab</span> Pro <span class="cloud-badge">● Cloud Sync</span></h1>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Tech Repair, Flipping & Ricambi</p>
+                </div>
+            </div>
             <div class="header-actions">
-                <button class="btn-pro" onclick="toggleModal('inventoryModal')">📦 Magazzino</button>
-                <button class="btn-pro" style="background:#00b0ff;" onclick="toggleModal('flipListModal')">📱 Lista Flipping</button>
-                <button class="btn-pro" style="background:#ffb300; color:#000;" onclick="toggleModal('auctionModal')">⏳ Aste & Scadenze</button>
-                <button class="btn-pro" style="background:#7c4dff;" onclick="toggleModal('statsModal')">📊 Statistiche</button>
-                <button class="btn-pro" style="background:#00e676; color:#000;" onclick="toggleModal('receiptModal')">🧾 Ricevuta PDF</button>
-                <button class="btn-backup" onclick="exportData()">💾</button>
-                <button class="btn-backup" onclick="document.getElementById('importFile').click()">📂</button>
+                <button class="btn-pro" style="background: #1d4ed8;" onclick="toggleModal('inventoryModal')">📦 Magazzino</button>
+                <button class="btn-pro" style="background: #0891b2;" onclick="toggleModal('flipListModal')">📱 Lista Flipping</button>
+                <button class="btn-pro" style="background: var(--warning); color:#090d16;" onclick="toggleModal('auctionModal')">⏳ Aste & Scadenze</button>
+                <button class="btn-pro" style="background: #6d28d9;" onclick="toggleModal('statsModal')">📊 Statistiche</button>
+                <button class="btn-pro" style="background: var(--accent); color:#04130d;" onclick="toggleModal('receiptModal')">🧾 Ricevuta PDF</button>
+                <button class="btn-backup" onclick="exportData()" title="Esporta Backup">💾</button>
+                <button class="btn-backup" onclick="document.getElementById('importFile').click()" title="Importa Backup">📂</button>
                 <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
-                <button class="btn-logout" onclick="handleLogout()">🚪</button>
+                <button class="btn-logout" onclick="handleLogout()" title="Esci">🚪</button>
             </div>
         </header>
 
@@ -136,14 +290,14 @@
             </div>
             <div class="stat-card">
                 <span>Valore Magazzino Ricambi</span>
-                <strong id="statInventory" style="color:var(--accent-blue);">€0</strong>
+                <strong id="statInventory" style="color:var(--accent-cyan);">€0</strong>
             </div>
         </div>
 
-        <!-- HOME RAPIDA: SOLO INSERIMENTO VELOCE -->
+        <!-- HOME RAPIDA A 3 QUADRANTI -->
         <div class="desktop-grid">
             
-            <!-- PANNELLO INSERIMENTO ASTA / SCADENZA RAPIDA -->
+            <!-- QUADRANTE 1: INSERIMENTO ASTA / SCADENZA RAPIDA -->
             <div class="panel">
                 <h2>⏳ Inserisci Nuova Asta / Scadenza</h2>
                 <div class="form-row">
@@ -153,11 +307,13 @@
                     <input type="number" id="auctionMaxBid" placeholder="Tua Offerta Max €">
                     <input type="datetime-local" id="auctionEndTime">
                 </div>
-                <button class="btn-add" style="background:var(--warning); color:#000;" onclick="saveAuction()">+ Aggiungi Asta</button>
-                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 15px; text-align: center;">💡 Clicca su <strong>"⏳ Aste & Scadenze"</strong> in alto per visualizzare l'elenco completo con i timer attivi.</p>
+                <button class="btn-add" style="background:var(--warning); color:#090d16;" onclick="saveAuction()">+ Aggiungi Asta</button>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: auto; padding-top: 15px; text-align: center;">
+                    💡 Apri <strong>"⏳ Aste & Scadenze"</strong> in alto per controllare i timer in tempo reale.
+                </p>
             </div>
 
-            <!-- PANNELLO INSERIMENTO FLIPPING & CRM RAPIDO -->
+            <!-- QUADRANTE 2: INSERIMENTO FLIPPING & CRM RAPIDO -->
             <div class="panel">
                 <h2>📱 Registra Dispositivo / Riparazione</h2>
                 <div class="form-row">
@@ -181,7 +337,43 @@
                     </select>
                 </div>
                 <button class="btn-add" onclick="saveFlip()">+ Registra nel Sistema</button>
-                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 10px; text-align: center;">💡 Clicca su <strong>"📱 Lista Flipping"</strong> in alto per gestire e filtrare tutti i dispositivi salvati.</p>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: auto; padding-top: 12px; text-align: center;">
+                    💡 Apri <strong>"📱 Lista Flipping"</strong> in alto per filtrare i dispositivi salvati.
+                </p>
+            </div>
+
+            <!-- QUADRANTE 3: CALCOLATRICE RAPIDA LABORATORIO -->
+            <div class="panel">
+                <h2>🧮 Calcolatrice Banco</h2>
+                <div class="calc-display">
+                    <div id="calcHistory" class="calc-history"></div>
+                    <div id="calcCurrent" class="calc-current">0</div>
+                </div>
+                <div class="calc-grid">
+                    <button class="calc-btn clear" onclick="calcClear()">C</button>
+                    <button class="calc-btn op" onclick="calcBackspace()">⌫</button>
+                    <button class="calc-btn op" onclick="calcAppend('%')">%</button>
+                    <button class="calc-btn op" onclick="calcAppend('/')">÷</button>
+
+                    <button class="calc-btn" onclick="calcAppend('7')">7</button>
+                    <button class="calc-btn" onclick="calcAppend('8')">8</button>
+                    <button class="calc-btn" onclick="calcAppend('9')">9</button>
+                    <button class="calc-btn op" onclick="calcAppend('*')">×</button>
+
+                    <button class="calc-btn" onclick="calcAppend('4')">4</button>
+                    <button class="calc-btn" onclick="calcAppend('5')">5</button>
+                    <button class="calc-btn" onclick="calcAppend('6')">6</button>
+                    <button class="calc-btn op" onclick="calcAppend('-')">−</button>
+
+                    <button class="calc-btn" onclick="calcAppend('1')">1</button>
+                    <button class="calc-btn" onclick="calcAppend('2')">2</button>
+                    <button class="calc-btn" onclick="calcAppend('3')">3</button>
+                    <button class="calc-btn op" onclick="calcAppend('+')">+</button>
+
+                    <button class="calc-btn" onclick="calcAppend('0')">0</button>
+                    <button class="calc-btn" onclick="calcAppend('.')">.</button>
+                    <button class="calc-btn eq" onclick="calcEqual()">=</button>
+                </div>
             </div>
 
         </div>
@@ -256,7 +448,7 @@
             <div class="form-row">
                 <input type="number" id="rcptPrice" placeholder="Preventivo / Costo Stimato €">
             </div>
-            <button class="btn-add" style="background: var(--accent); color: #000;" onclick="generatePDFReceipt()">📥 Scarica Ricevuta PDF Ufficiale</button>
+            <button class="btn-add" onclick="generatePDFReceipt()">📥 Scarica Ricevuta PDF Ufficiale</button>
         </div>
     </div>
 
@@ -271,6 +463,53 @@
         let inventory = [];
         let currentFlipFilter = 'Tutti';
 
+        // --- LOGICA CALCOLATRICE ---
+        let calcExpression = '';
+
+        function updateCalcDisplay() {
+            document.getElementById('calcCurrent').innerText = calcExpression || '0';
+        }
+
+        function calcAppend(val) {
+            if (val === '%') {
+                try {
+                    calcExpression = String(eval(calcExpression) / 100);
+                } catch {
+                    calcExpression = '';
+                }
+            } else {
+                calcExpression += val;
+            }
+            updateCalcDisplay();
+        }
+
+        function calcClear() {
+            calcExpression = '';
+            document.getElementById('calcHistory').innerText = '';
+            updateCalcDisplay();
+        }
+
+        function calcBackspace() {
+            calcExpression = calcExpression.slice(0, -1);
+            updateCalcDisplay();
+        }
+
+        function calcEqual() {
+            if (!calcExpression) return;
+            try {
+                const sanitized = calcExpression.replace(/[^-()\d/*+.]/g, '');
+                const result = Function('"use strict";return (' + sanitized + ')')();
+                const rounded = Math.round(result * 10000) / 10000;
+                document.getElementById('calcHistory').innerText = calcExpression + ' =';
+                calcExpression = String(rounded);
+                updateCalcDisplay();
+            } catch (e) {
+                document.getElementById('calcCurrent').innerText = 'Errore';
+                calcExpression = '';
+            }
+        }
+
+        // --- GESTIONE AUTENTICAZIONE & CLOUD ---
         async function checkUser() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
@@ -391,7 +630,7 @@
                 <p><strong>Capitale Totale Investito:</strong> €${totalInvested}</p>
                 <p style="color:var(--accent);"><strong>Utile Reale (Venduti):</strong> €${realizedProfit}</p>
                 <p style="color:var(--warning);"><strong>Utile Previsto (In corso):</strong> €${potentialProfit}</p>
-                <p style="color:var(--accent-blue);"><strong>Valore Attuale Magazzino Ricambi:</strong> €${totalInvVal}</p>
+                <p style="color:var(--accent-cyan);"><strong>Valore Attuale Magazzino Ricambi:</strong> €${totalInvVal}</p>
             `;
         }
 
@@ -401,7 +640,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `mobilab_pro_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.download = `mobilab_moby_backup_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -439,7 +678,7 @@
 
             doc.setFont("helvetica", "bold");
             doc.setFontSize(20);
-            doc.setTextColor(0, 230, 118);
+            doc.setTextColor(16, 185, 129);
             doc.text("MobiLab - Laboratorio & Riparazioni", 14, 20);
 
             doc.setFontSize(10);
@@ -640,15 +879,15 @@
             list.innerHTML = filtered.length ? '' : '<p style="color:var(--text-muted); font-size:0.85rem; padding:4px;">Magazzino vuoto.</p>';
             filtered.forEach(i => {
                 list.innerHTML += `
-                    <li class="item-card" style="border-left-color: var(--accent-blue);">
+                    <li class="item-card" style="border-left-color: var(--accent-cyan);">
                         <div class="item-info">
                             <h3>${i.code ? `<span class="sku-badge">#${i.code}</span>` : ''} ${i.name}</h3>
                             <p>Costo Unit.: €${i.price} | Tot: <span class="price-tag">€${i.qty * i.price}</span></p>
                         </div>
                         <div class="actions">
-                            <button class="btn-sm" style="background:#21262d;color:#fff;" onclick="updateInvQty(${i.id}, -1)">-</button>
+                            <button class="btn-sm" style="background:#152638;color:#fff;" onclick="updateInvQty(${i.id}, -1)">-</button>
                             <span style="font-weight:bold; min-width:20px; text-align:center; font-size:0.85rem;">${i.qty}</span>
-                            <button class="btn-sm" style="background:#21262d;color:#fff;" onclick="updateInvQty(${i.id}, 1)">+</button>
+                            <button class="btn-sm" style="background:#152638;color:#fff;" onclick="updateInvQty(${i.id}, 1)">+</button>
                             <button class="btn-sm btn-del" onclick="deleteInv(${i.id})">✕</button>
                         </div>
                     </li>
